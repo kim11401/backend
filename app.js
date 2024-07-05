@@ -4,6 +4,7 @@ const connectDB = require('./schemas')
 const errorHandler = require('./middlewares/errorHandler')
 const router = require('./routes')
 require('express-async-errors')
+const cors = require('cors')
 
 dotenv.config()
 
@@ -12,6 +13,13 @@ const PORT = process.env.PORT || 3000
 
 //데이터베이스 연결
 connectDB()
+
+// CORS 설정
+app.use(
+  cors({
+    origin: '*'
+  })
+)
 
 //미들웨어 설정
 app.use(express.json())
