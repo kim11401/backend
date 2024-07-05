@@ -1,8 +1,20 @@
 const User = require('../schemas/user')
-const bcrypt = require('bcrypt')
+const crypto = require('crypto')
 const sendResponse = require('../util/response')
 const { sign } = require('jsonwebtoken')
 const saltRounds = 10
+
+const salt = crypto.randomBytes(16).toString('hex')
+const iterations = 10000
+const keylen = 64
+const digest = 'sha512'
+
+// 해싱 함수
+const hashPassword = (password, salt) => {
+  return crypto
+    .pbkdf2Sync(password, salt, iterations, keylen, digest)
+    .toString('hex')
+}
 
 // 새로운 사용자 생성
 const createUser = async (req, res) => {
@@ -29,8 +41,15 @@ const createUser = async (req, res) => {
     }
 
     // 패스워드 암호화
-    const hashedPassword = await bcrypt.hash(password, saltRounds)
-    const newUser = new User({ userId, password: hashedPassword, nickName })
+    const hashedPassword = hashPassword(password, salt)
+
+    // 새로운 사용자 생성
+    const newUser = new User({
+      userId,
+      password: hashedPassword,
+      nickName,
+      salt
+    })
     await newUser.save()
     res
       .status(201)
@@ -51,8 +70,8 @@ const loginUser = async (req, res) => {
     }
 
     // 비밀번호 비교
-    const isMatch = await bcrypt.compare(password, user.password)
-    if (!isMatch) {
+    const hashedPassword = hashPassword(password, user.salt)
+    if (hashedPassword !== user.password) {
       return sendResponse(res, false, 400, 'Invalid user ID or password')
     }
 
